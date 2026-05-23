@@ -1,4 +1,7 @@
 import logging
+import os
+import requests
+import importlib
 from telegram.ext import ApplicationBuilder, CommandHandler
 
 # --- KONFIGURASI LOGGING ---
@@ -12,46 +15,42 @@ async def start(update, context):
     await update.message.reply_text("Sistem Bot Aktif! Gunakan /install <url_raw_github> untuk memasang skill baru.")
 
 def main():
-    # GANTI 'YOUR_TOKEN_HERE' dengan Token Bot Anda
-    # Atau gunakan os.getenv("BOT_TOKEN") jika Anda menyimpannya di Railway Variables
-    TOKEN = "YOUR_TOKEN_HERE" 
+    # Mengambil token dari Railway Variables (Cara 2 yang Aman)
+    TOKEN = os.getenv("BOT_TOKEN")
+    
+    if not TOKEN:
+        print("ERROR: BOT_TOKEN tidak ditemukan di Environment Variables!")
+        return
 
     # drop_pending_updates=True akan membuang konflik koneksi yang lama
     application = ApplicationBuilder().token(TOKEN).build()
-    
-    # Menghapus webhook/antrean lama saat bot mulai
     application.bot.delete_webhook(drop_pending_updates=True)
 
     # Handler Dasar
     application.add_handler(CommandHandler("start", start))
 
-    # --- PENGATURAN INSTALLER (Agar Anda bisa install skill dari GitHub) ---
+    # --- FUNGSI INSTALLER ---
     async def install_skill(update, context):
         if not context.args:
             await update.message.reply_text("Kirimkan URL raw GitHub untuk menginstal skill.")
             return
         
         url = context.args[0]
-        # Logika instalasi sederhana (mengunduh file)
-        import requests
         try:
             response = requests.get(url)
             if response.status_code == 200:
-                # Menulis file ke server agar bisa di-import
                 file_name = url.split('/')[-1]
                 with open(file_name, 'w') as f:
                     f.write(response.text)
                 
-                # Mengimpor modul secara dinamis
-                import importlib
                 module_name = file_name.replace('.py', '')
                 module = importlib.import_module(module_name)
                 
                 if hasattr(module, 'setup'):
                     module.setup(application)
-                    await update.message.reply_text(f"Skill '{file_name}' berhasil diinstal dan diaktifkan!")
+                    await update.message.reply_text(f"Skill '{file_name}' berhasil diinstal!")
                 else:
-                    await update.message.reply_text("File berhasil diunduh, tapi tidak ada fungsi setup().")
+                    await update.message.reply_text("Skill berhasil diunduh, tapi tidak ada fungsi setup().")
             else:
                 await update.message.reply_text("Gagal mengunduh file, periksa URL-nya.")
         except Exception as e:
