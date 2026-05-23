@@ -1,6 +1,5 @@
 python-telegram-bot==21.1.1
 requests==2.31.0
-python-telegram-bot
-requests
 solana
 base58
+solders
