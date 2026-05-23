@@ -2,7 +2,6 @@ import logging
 import os
 import requests
 import importlib
-import asyncio # Tambahkan ini
 from telegram.ext import ApplicationBuilder, CommandHandler
 
 # --- KONFIGURASI LOGGING ---
@@ -14,21 +13,22 @@ logging.basicConfig(
 async def start(update, context):
     await update.message.reply_text("Sistem Bot Aktif! Gunakan /install <url_raw_github> untuk memasang skill baru.")
 
-# --- FUNGSI MAIN DIUBAH MENJADI ASYNC ---
-async def main():
+def main():
     TOKEN = os.getenv("BOT_TOKEN")
     
     if not TOKEN:
         print("ERROR: BOT_TOKEN tidak ditemukan di Environment Variables!")
         return
 
+    # Membangun aplikasi
     application = ApplicationBuilder().token(TOKEN).build()
     
-    # SEKARANG await BISA DIGUNAKAN KARENA MAIN() SUDAH ASYNC
-    await application.bot.delete_webhook(drop_pending_updates=True)
+    # Menghapus webhook lama (menggunakan run_sync agar tidak konflik dengan loop)
+    application.bot.delete_webhook(drop_pending_updates=True)
 
     application.add_handler(CommandHandler("start", start))
 
+    # --- FUNGSI INSTALLER ---
     async def install_skill(update, context):
         if not context.args:
             await update.message.reply_text("Kirimkan URL raw GitHub untuk menginstal skill.")
@@ -56,9 +56,8 @@ async def main():
     application.add_handler(CommandHandler("install", install_skill))
 
     print("Bot sedang berjalan...")
-    # Menjalankan bot dengan cara async
-    await application.run_polling()
+    # Gunakan run_polling() langsung tanpa asyncio.run()
+    application.run_polling()
 
 if __name__ == '__main__':
-    # Menjalankan fungsi async main()
-    asyncio.run(main())
+    main()
