@@ -1,68 +1,66 @@
-import os
-import importlib
-import requests
-from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+import logging
+from telegram.ext import ApplicationBuilder, CommandHandler
 
-TOKEN = os.getenv("TELEGRAM_TOKEN")
-SKILLS_DIR = "skills"
+# --- KONFIGURASI LOGGING ---
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 
-if not os.path.exists(SKILLS_DIR):
-    os.makedirs(SKILLS_DIR)
-    with open(f"{SKILLS_DIR}/__init__.py", "w") as f:
-        f.write("")
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# --- FUNGSI START ---
+async def start(update, context):
     await update.message.reply_text("Sistem Bot Aktif! Gunakan /install <url_raw_github> untuk memasang skill baru.")
 
-async def install_skill(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not context.args:
-        await update.message.reply_text("Format: /install <url_raw_github_file.py>")
-        return
-
-    url = context.args[0]
-    filename = url.split("/")[-1]
-
-    if not filename.endswith(".py"):
-        await update.message.reply_text("Gagal: File skill harus berformat .py")
-        return
-
-    await update.message.reply_text(f"Mengunduh skill {filename}...")
-
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-
-        filepath = os.path.join(SKILLS_DIR, filename)
-        with open(filepath, "w", encoding="utf-8") as f:
-            f.write(response.text)
-
-        module_name = filename[:-3]
-        importlib.invalidate_caches()
-        module = importlib.import_module(f"{SKILLS_DIR}.{module_name}")
-
-        if hasattr(module, 'setup'):
-            module.setup(context.application)
-            await update.message.reply_text(f"Skill '{filename}' berhasil diinstal dan diaktifkan!")
-        else:
-            await update.message.reply_text(f"Skill '{filename}' diunduh, tapi tidak valid (tidak ada fungsi setup).")
-
-    except Exception as e:
-        await update.message.reply_text(f"Terjadi kesalahan saat mengunduh: {e}")
-
 def main():
-    if not TOKEN:
-        print("Error: TELEGRAM_TOKEN belum disetting di Railway!")
-        return
+    # GANTI 'YOUR_TOKEN_HERE' dengan Token Bot Anda
+    # Atau gunakan os.getenv("BOT_TOKEN") jika Anda menyimpannya di Railway Variables
+    TOKEN = "YOUR_TOKEN_HERE" 
 
-    app = Application.builder().token(TOKEN).build()
+    # drop_pending_updates=True akan membuang konflik koneksi yang lama
+    application = ApplicationBuilder().token(TOKEN).build()
     
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("install", install_skill))
-    
+    # Menghapus webhook/antrean lama saat bot mulai
+    application.bot.delete_webhook(drop_pending_updates=True)
+
+    # Handler Dasar
+    application.add_handler(CommandHandler("start", start))
+
+    # --- PENGATURAN INSTALLER (Agar Anda bisa install skill dari GitHub) ---
+    async def install_skill(update, context):
+        if not context.args:
+            await update.message.reply_text("Kirimkan URL raw GitHub untuk menginstal skill.")
+            return
+        
+        url = context.args[0]
+        # Logika instalasi sederhana (mengunduh file)
+        import requests
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                # Menulis file ke server agar bisa di-import
+                file_name = url.split('/')[-1]
+                with open(file_name, 'w') as f:
+                    f.write(response.text)
+                
+                # Mengimpor modul secara dinamis
+                import importlib
+                module_name = file_name.replace('.py', '')
+                module = importlib.import_module(module_name)
+                
+                if hasattr(module, 'setup'):
+                    module.setup(application)
+                    await update.message.reply_text(f"Skill '{file_name}' berhasil diinstal dan diaktifkan!")
+                else:
+                    await update.message.reply_text("File berhasil diunduh, tapi tidak ada fungsi setup().")
+            else:
+                await update.message.reply_text("Gagal mengunduh file, periksa URL-nya.")
+        except Exception as e:
+            await update.message.reply_text(f"Error instalasi: {str(e)}")
+
+    application.add_handler(CommandHandler("install", install_skill))
+
     print("Bot sedang berjalan...")
-    app.run_polling()
+    application.run_polling()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
-
