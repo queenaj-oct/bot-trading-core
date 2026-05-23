@@ -24,7 +24,7 @@ def main():
 
     # drop_pending_updates=True akan membuang konflik koneksi yang lama
     application = ApplicationBuilder().token(TOKEN).build()
-    application.bot.delete_webhook(drop_pending_updates=True)
+    await application.bot.delete_webhook(drop_pending_updates=True)
 
     # Handler Dasar
     application.add_handler(CommandHandler("start", start))
