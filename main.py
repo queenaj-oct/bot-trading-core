@@ -1,4 +1,3 @@
-import os
 import logging
 from telegram.ext import ApplicationBuilder
 
@@ -8,20 +7,16 @@ logging.basicConfig(
     level=logging.INFO
 )
 
-# --- TOKEN BOT ---
-# Pastikan Anda sudah menyetel environment variable 'TOKEN' di dashboard worker Anda
-TOKEN = os.getenv("TOKEN")
+# Masukkan Token Bot Anda di antara tanda kutip di bawah ini
+TOKEN = "MASUKKAN_TOKEN_BOT_ANDA_DISINI"
 
 def main():
-    if not TOKEN:
-        print("❌ Error: Token bot tidak ditemukan di Environment Variables!")
+    if TOKEN == "MASUKKAN_TOKEN_BOT_ANDA_DISINI":
+        print("❌ Error: Silakan isi TOKEN di dalam file main.py!")
         return
 
     # Inisialisasi Bot
     application = ApplicationBuilder().token(TOKEN).build()
-
-    # Jika Anda memiliki sistem plugin/skill otomatis, biarkan kosong di sini 
-    # karena Anda akan menginstalnya via perintah /install nanti.
     
     print("🚀 Bot sedang berjalan...")
     application.run_polling()
