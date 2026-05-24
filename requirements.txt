@@ -1,4 +1,4 @@
 python-telegram-bot
 requests
-solders
-solana
+solders==0.21.0
+solana==0.34.3
