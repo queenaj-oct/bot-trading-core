@@ -1,22 +1,20 @@
 import logging
-import os
 from telegram.ext import ApplicationBuilder
 
-# Konfigurasi Logging
+# Logging agar Anda bisa melihat proses di dashboard worker
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 
-# Masukkan Token dari @BotFather di sini
-TOKEN = "MASUKKAN_TOKEN_BOT_ANDA_DI_SINI"
+# GANTI DENGAN TOKEN ANDA
+TOKEN = "ISI_TOKEN_BOT_DISINI"
 
 def main():
-    if TOKEN == "MASUKKAN_TOKEN_BOT_ANDA_DI_SINI":
+    if TOKEN == "8942976552:AAElLSGizgcCXsT66FBmoH1ga8_URTSiq_g":
         print("❌ Error: TOKEN belum diisi di main.py!")
         return
 
-    # Inisialisasi Application
     application = ApplicationBuilder().token(TOKEN).build()
     
     print("🚀 Bot sedang berjalan...")
